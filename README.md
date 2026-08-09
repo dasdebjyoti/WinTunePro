@@ -1,175 +1,121 @@
-# **WinTunePro**
+# WinTunePro
 
-**WinTunePro** is a modern, modular Windows optimization and tweaking utility built for **Windows 11** and future Windows versions.  
-It provides safe, powerful, and user‑friendly controls to customize performance, privacy, UI behavior, gaming settings, and advanced system features.
+![Build](https://github.com/dasdebjyoti/WinTunePro/actions/workflows/dotnet.yml/badge.svg)
+![Releases](https://img.shields.io/github/v/release/dasdebjyoti/WinTunePro)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
-WinTunePro is built using **.NET** and **Visual Studio 2026**, and is designed to be transparent, open‑source, and easy to extend.
+WinTunePro is a modern, modular Windows optimization and tweaking utility targeted at Windows 11 and future Windows releases. It provides user‑friendly controls to safely adjust performance, privacy, UI, networking, and gaming settings.
 
----
-
-## **✨ Features (Current & Planned)**
-
-### **Core Features**
-- Modern .NET‑based tweak engine  
-- Registry backup & restore  
-- PowerShell automation  
-- Windows service & scheduled task control  
-- Admin elevation handling  
-- Logging & diagnostics  
-- Clean, intuitive Windows Forms UI  
+This repository contains the WinTunePro application built with .NET 10 and a Windows Forms UI. The project aims to be extensible, data‑driven, and safe by default.
 
 ---
 
-## **🚀 Roadmap**
+## Quick links
 
-### **📌 Phase 1 — Foundation & Core Architecture (v1.0.0)**
-**Goal:** Build a stable base and essential infrastructure.
-
-- Project structure & modular tweak engine  
-- Admin privilege detection  
-- Registry read/write engine  
-- PowerShell execution engine  
-- Logging system  
-- Settings page (theme, backups, update check placeholder)  
-- Basic UI layout (dashboard + categories sidebar)
-
-**Release:** *WinTunePro v1.0.0 — “Core Engine + Basic UI”*
+- Project: https://github.com/dasdebjyoti/WinTunePro
+- Issues: https://github.com/dasdebjyoti/WinTunePro/issues
+- Releases: https://github.com/dasdebjyoti/WinTunePro/releases
+- License: LICENSE
 
 ---
 
-### **📌 Phase 2 — Essential Tweaks Pack (v1.1 → v1.3)**  
-**Goal:** Add the most commonly requested Windows 11 tweaks.
+## Key features
 
-#### Performance
-- Disable startup delay  
-- Disable animations/transparency  
-- Enable Ultimate Performance power plan  
-- Disable background apps  
-
-#### Privacy
-- Disable telemetry  
-- Disable advertising ID  
-- Disable feedback notifications  
-- Disable location tracking  
-
-#### UI / Explorer
-- Enable classic context menu  
-- Disable taskbar search  
-- Disable widgets  
-- Show seconds in taskbar clock  
-- Disable Snap Assist  
-
-#### Network
-- Disable Delivery Optimization  
-- Enable DNS over HTTPS  
-- Disable Wi‑Fi Sense  
-
-**Release:** *WinTunePro v1.3.0 — “Essential Tweaks Pack”*
+- Modular tweak engine (each tweak is a self‑contained unit)
+- Registry backup & restore with change history
+- PowerShell automation engine for scriptable tweaks
+- Service and scheduled task controls
+- Admin elevation handling and safe defaults
+- Logging and diagnostics
+- Preset profiles (planned)
 
 ---
 
-### **📌 Phase 3 — Advanced Tweaks & Power Tools (v2.0)**  
-**Goal:** Add deeper system tweaks and power‑user utilities.
+## Prerequisites
 
-#### Advanced Tweaks
-- Change Windows Update channel  
-- Disable VBS  
-- Disable automatic driver updates  
-- Disable auto‑restart after updates  
-- GPU preference per app  
-- Disable Game DVR / Xbox Game Bar  
-- Disable Fullscreen Optimizations  
-- Disable SmartScreen (with warnings)
-
-#### Power Tools
-- Context menu editor  
-- Service manager (safe presets only)  
-- Scheduled tasks manager  
-- OneDrive removal tool  
-- Clipboard history toggle  
-- Classic Alt+Tab mode  
-
-**Release:** *WinTunePro v2.0.0 — “Advanced Tweaks + Power Tools”*
+- Windows 11 (x64 or ARM64 supported where applicable)
+- .NET 10 SDK / Runtime installed for development and build
+- Visual Studio 2026 (recommended) or the dotnet CLI
+- Administrative privileges required for many tweaks (UAC prompt)
 
 ---
 
-### **📌 Phase 4 — Preset Modes & Automation (v2.5)**  
-**Goal:** Make WinTunePro accessible to non‑technical users.
+## Quick start (developer)
 
-#### Preset Profiles
-- Performance Mode  
-- Privacy Mode  
-- Gaming Mode  
-- Minimalist UI Mode  
-- Recommended Mode  
+Clone the repository and open the solution in Visual Studio or build with dotnet CLI:
 
-#### Automation
-- Apply multiple tweaks in sequence  
-- Rollback preset changes  
-- Export/import tweak profiles (JSON)
+PowerShell
 
-**Release:** *WinTunePro v2.5.0 — “Preset Profiles + Automation”*
+cd "D:\\DEV\\WinTunePro"
+git clone https://github.com/dasdebjyoti/WinTunePro.git
+cd WinTunePro
+dotnet build WinTunePro.slnx
 
----
+Open WinTunePro.slnx in Visual Studio 2026 and run (Debug/Release) as needed.
 
-### **📌 Phase 5 — Polish, Safety, and UX Enhancements (v2.8)**  
-**Goal:** Improve reliability, trust, and user experience.
+To run Visual Studio elevated (required for testing admin flows):
 
-- Warnings for risky tweaks  
-- Dependency checks  
-- Undo history  
-- Restore point creation prompt  
-- Better error messages  
-- Dark/Light mode  
-- Progress indicators  
+1. Close Visual Studio.
+2. Right‑click on Visual Studio and choose "Run as administrator".
 
-**Release:** *WinTunePro v2.8.0 — “Safety + UX Upgrade”*
+Or run the compiled executable elevated from PowerShell:
+
+Start-Process -FilePath "path\to\WinTunePro.exe" -Verb RunAs
 
 ---
 
-### **📌 Phase 6 — Future Windows Support (v3.0)**  
-**Goal:** Prepare for Windows 12 and beyond.
+## Usage notes & safety
 
-- Dynamic tweak compatibility detection  
-- Cloud‑based tweak definitions (JSON from GitHub)  
-- Version‑specific tweak sets  
-- Auto‑update mechanism (GitHub Releases API)
-
-**Release:** *WinTunePro v3.0.0 — “Next‑Gen Windows Support”*
+- Many tweaks modify registry keys or system services. The app will create a registry backup and (optionally) prompt to create a System Restore point before applying risky changes.
+- Always review the list of changes before applying a preset.
+- The app provides rollback where possible; some changes may require sign‑out, Explorer restart, or full system restart.
 
 ---
 
-## **🛠️ Technology Stack**
-- **Language:** C# (.NET 8+)  
-- **UI Framework:** Windows Forms (.NET)  
-- **IDE:** Visual Studio Community 2022  
-- **Automation:** PowerShell + Win32 APIs  
-- **Version Control:** Git + GitHub  
+## Recommended workflow for contributors
+
+1. Fork the repository
+2. Create a feature branch: git checkout -b feat/my-tweak
+3. Implement changes and add tests where applicable
+4. Commit and push to your fork
+5. Open a Pull Request against the upstream master branch
+
+See CONTRIBUTING.md for more details (if present).
 
 ---
 
-## **⚠️ Disclaimer**
-WinTunePro modifies system settings, registry keys, and Windows features.  
-While every tweak is designed to be safe, **use at your own risk**.  
-Always create backups or restore points before applying advanced tweaks.
+## Roadmap (summary)
+
+Phases include: foundation and core engine (v1.0), essential tweaks pack (v1.1+), advanced tweaks & power tools (v2.0), presets & automation (v2.5), UX polish and safety (v2.8), and future Windows support (v3.0).
+
+Refer to the in‑repo roadmap or project board for the current schedule and issues.
 
 ---
 
-## **📥 Downloads**
-Releases will be available under the **GitHub Releases** section once development milestones are reached.
+## Technology stack
+
+- Language: C# (.NET 10)
+- UI: Windows Forms (.NET)
+- Automation: PowerShell, Win32 APIs
+- CI: GitHub Actions (dotnet build/test)
 
 ---
 
-## **🤝 Contributing**
-Contributions are welcome!  
-You can help by:
-- Suggesting new tweaks  
-- Improving UI/UX  
-- Adding documentation  
-- Reporting issues  
-- Submitting pull requests  
+## Security & Privacy
+
+WinTunePro does not collect telemetry by default. Any optional diagnostics or telemetry will be disclosed and opt‑in only. The app operates locally and stores registry backups and logs in the user's profile by default; do not store secrets in those files.
 
 ---
 
-## **📄 License**
-WinTunePro will be released under the **MIT License** (recommended for open‑source utilities).
+## License
+
+This project is released under the MIT License. See the LICENSE file for details.
+
+---
+
+## Contact & support
+
+Open issues on GitHub for bugs, feature requests, or security concerns: https://github.com/dasdebjyoti/WinTunePro/issues
+
+Thank you for using and contributing to WinTunePro!
+
