@@ -12,8 +12,8 @@ namespace WinTunePro.Tweaks
         public override string Description => "Toggle showing seconds in the Windows taskbar clock (HKCU).";
         public override bool RequiresElevation => false;
 
-        private const string KeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
-        private const string ValueName = "ShowSecondsInSystemClock";
+        public const string KeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
+        public const string ValueName = "ShowSecondsInSystemClock";
 
         private readonly int _desiredValue;
 
@@ -28,7 +28,7 @@ namespace WinTunePro.Tweaks
             {
                 Logger.LogInfo($"Applying tweak {Id}: setting {KeyPath}::{ValueName} to {_desiredValue}");
                 // Backup current value
-                RegistryBackup.Save(Id, KeyPath, ValueName);
+                RegistryBackup.Save(Id, Registry.CurrentUser, KeyPath, ValueName);
 
                 using var key = Registry.CurrentUser.CreateSubKey(KeyPath);
                 key.SetValue(ValueName, _desiredValue, RegistryValueKind.DWord);

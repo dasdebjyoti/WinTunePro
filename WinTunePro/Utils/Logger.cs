@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace WinTunePro.Utils
@@ -15,7 +16,7 @@ namespace WinTunePro.Utils
             try
             {
                 var tmp = Path.GetTempPath();
-                LogPath = Path.Combine(tmp, "WinTunePro.log");
+                LogPath = Path.Combine(tmp, AppInfo.Name + ".log"); // "WinTunePro.log");
             }
             catch
             {
@@ -34,7 +35,7 @@ namespace WinTunePro.Utils
                 // Purge content when exceeding max size
                 lock (_sync)
                 {
-                    File.WriteAllText(LogPath, $"--- Log purged at {DateTime.UtcNow:O} ---\r\n");
+                    File.WriteAllText(LogPath, $"--- Log purged at {DateTime.Now:O} ---\r\n");
                 }
             }
             catch
@@ -43,14 +44,27 @@ namespace WinTunePro.Utils
             }
         }
 
-        private static void Write(string level, string message)
+        private static void Write(string level, string message, string memberName = "", string file = "", int lineNo = 0)
         {
             try
             {
                 EnsureSizeLimit();
+
+                // Get class name from file path
+                string className = "";
+                if (!string.IsNullOrEmpty(file))
+                {
+                    var fi = new FileInfo(file);
+                    className = Path.GetFileNameWithoutExtension(fi.Name);
+                }
+
                 var line = new StringBuilder();
-                line.Append(DateTime.UtcNow.ToString("o"));
+                line.Append(DateTime.Now.ToString("o"));
                 line.Append(" [").Append(level).Append("] ");
+                if (!string.IsNullOrEmpty(memberName))
+                {
+                    line.Append(" [").Append(className).Append('.').Append(memberName).Append("] ");
+                }
                 line.Append(message).Append(Environment.NewLine);
 
                 lock (_sync)
@@ -64,15 +78,15 @@ namespace WinTunePro.Utils
             }
         }
 
-        public static void LogInfo(string message) => Write("INFO", message);
-        public static void LogWarning(string message) => Write("WARN", message);
-        public static void LogError(string message) => Write("ERROR", message);
-        public static void LogException(Exception ex, string? message = null)
+        public static void LogInfo(string message, [CallerMemberName] string memberName = "", [CallerFilePath] string file = "", [CallerLineNumber] int lineNo = 0) => Write("INFO", message, memberName, file, lineNo);
+        public static void LogWarning(string message, [CallerMemberName] string memberName = "", [CallerFilePath] string file = "", [CallerLineNumber] int lineNo = 0) => Write("WARN", message, memberName, file, lineNo);
+        public static void LogError(string message, [CallerMemberName] string memberName = "", [CallerFilePath] string file = "", [CallerLineNumber] int lineNo = 0) => Write("ERROR", message, memberName, file, lineNo);
+        public static void LogException(Exception ex, string? message = null, [CallerMemberName] string memberName = "", [CallerFilePath] string file = "", [CallerLineNumber] int lineNo = 0)
         {
             try
             {
                 var msg = message != null ? message + " - " + ex : ex.ToString();
-                Write("EXCP", msg);
+                Write("EXCP", msg, memberName, file, lineNo);
             }
             catch { }
         }
