@@ -10,7 +10,6 @@ namespace WinTunePro
 {
     public partial class MainForm : Form
     {
-        // private string AppName => Application.ProductName ?? "WinTunePro";
         private const uint HWND_BROADCAST = 0xFFFF;
         private const uint WM_SETTINGCHANGE = 0x001A;
         private const uint SMTO_ABORTIFHUNG = 0x0002;
@@ -53,8 +52,25 @@ namespace WinTunePro
             {
                 Logger.LogException(ex, "Failed to save window state");
             }
+            Logger.LogInfo("Exiting");
         }
 
+        private void ChkTweakShowSeconds_CheckedChanged(object sender, EventArgs e)
+        {
+            bool originalState = chkTweakShowSeconds.Tag is bool b && b;
+            btnTweakShowSecondsApply.Enabled = chkTweakShowSeconds.Checked != originalState;
+        }
+        private void ChkTweakMinAnimate_CheckedChanged(object sender, EventArgs e)
+        {
+            bool originalState = chkTweakMinAnimate.Tag is bool b && b;
+            btnTweakMinAnimateApply.Enabled = chkTweakMinAnimate.Checked != originalState;
+        }
+
+        private void ChkTweakTaskbarAnimate_CheckedChanged(object sender, EventArgs e)
+        {
+            bool originalState = chkTweakTaskbarAnimate.Tag is bool b && b;
+            btnTweakTaskbarAnimateApply.Enabled = chkTweakTaskbarAnimate.Checked != originalState;
+        }
         private bool BroadcastSettingChange(string area)
         {
             try
@@ -131,23 +147,25 @@ namespace WinTunePro
             try
             {
                 // Initialize the "Show Seconds" checkbox based on the registry value
-                using var key = Registry.CurrentUser.OpenSubKey(ShowSecondsTweak.KeyPath, false);
-                if (key != null)
-                {
-                    var v = key.GetValue(ShowSecondsTweak.ValueName);
-                    if (v is int iv)
-                    {
-                        chkTweakShowSeconds.Checked = iv != 0;
-                    }
-                }
+                var showSecondsTweak = new TweakShowSeconds(chkTweakShowSeconds.Checked);
+                chkTweakShowSeconds.Checked = showSecondsTweak.GetCurrentEnabled() ?? false;
+                chkTweakShowSeconds.Tag = chkTweakShowSeconds.Checked; // store initial state for comparison
+                btnTweakShowSecondsApply.Enabled = false;
+                btnTweakShowSecondsRollback.Enabled = showSecondsTweak.IsBackupFileAvailable() ?? false;
 
                 // Initialize the "Animate Windows" checkbox based on the registry value
-                var tweak = new MinAnimateTweak(chkTweakMinAnimate.Checked);
+                var tweak = new TweakMinAnimate(chkTweakMinAnimate.Checked);
                 chkTweakMinAnimate.Checked = tweak.GetCurrentEnabled() ?? false;
                 chkTweakMinAnimate.Tag = chkTweakMinAnimate.Checked; // store initial state for comparison
                 btnTweakMinAnimateApply.Enabled = false;
                 btnTweakMinAnimateRollback.Enabled = tweak.IsBackupFileAvailable() ?? false;
 
+                // Initialize the "Taskbar Animate" checkbox based on the registry value
+                var taskbarTweak = new TweakTaskbarAnimations(chkTweakTaskbarAnimate.Checked);
+                chkTweakTaskbarAnimate.Checked = taskbarTweak.GetCurrentEnabled() ?? false;
+                chkTweakTaskbarAnimate.Tag = chkTweakTaskbarAnimate.Checked; // store initial state for comparison
+                btnTweakTaskbarAnimateApply.Enabled = false;
+                btnTweakTaskbarAnimateRollback.Enabled = taskbarTweak.IsBackupFileAvailable() ?? false;
             }
             catch (Exception ex)
             {
@@ -186,6 +204,9 @@ namespace WinTunePro
                     toolStripProgressBar1.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
                     toolStripProgressBar1.MarqueeAnimationSpeed = 30;
                     toolStripProgressBar1.Visible = true;
+
+                    btnTweakTaskbarAnimateApply.Enabled = false;
+                    btnTweakTaskbarAnimateRollback.Enabled = false;
                 }
             }
             catch { }
@@ -205,156 +226,29 @@ namespace WinTunePro
             catch { }
         }
 
-        // Batch apply/rollback removed - using individual static checkboxes in designer
+        private void toolStripProgressBar1_Click(object sender, EventArgs e)
+        {
 
-        // LoadCurrentValues removed: InitializeCheckboxStates() is used to initialize and refresh UI checkboxes
+        }
 
         private async void BtnTweakShowSecondsApply_Click(object? sender, EventArgs e)
         {
             SetStatus("Applying show seconds tweak...");
-            btnTweakShowSecondsApply.Enabled = false;
-            btnTweakShowSecondsRollback.Enabled = false;
+            CheckBox tweakCheckbox = chkTweakShowSeconds;
+            Button tweakButtonApply = btnTweakShowSecondsApply;
+            Button tweakButtonRollback = btnTweakShowSecondsRollback;
 
-            var tweak = new ShowSecondsTweak(chkTweakShowSeconds.Checked);
-            Logger.LogInfo($"Applying tweak {tweak.Id}, enable={chkTweakShowSeconds.Checked}");
-            StartProgress();
-            var ok = await Task.Run(() => tweak.ApplyAsync());
-            StopProgress();
+            tweakButtonApply.Enabled = false;
+            tweakButtonRollback.Enabled = false;
 
-            if (ok)
-            {
-                SetStatus("Tweak applied. Notifying shell. Restart Explorer or sign out to ensure full effect.");
-                Logger.LogInfo("Tweak applied. Notifying shell. Restart Explorer or sign out to ensure full effect.");
-
-                // Try to notify the shell of setting changes first
-                bool notified = BroadcastSettingChange("TraySettings");
-                Logger.LogInfo($"BroadcastSettingChange returned {notified}");
-
-                // Ask user to restart Explorer only if they want to or if notify failed
-                if (notified)
-                {
-                    var resp = MessageBox.Show(this, "Change applied. Restart Explorer now to ensure the change is visible?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (resp == DialogResult.Yes)
-                    {
-                        Logger.LogInfo("User agreed to restart Explorer after apply");
-                        SetStatus("Restarting Explorer...");
-                        await Task.Run(() => ExplorerRestarter.RestartExplorer());
-                        SetStatus("Applied successfully.");
-                    }
-                    else
-                    {
-                        Logger.LogInfo("User declined to restart Explorer after apply");
-                        SetStatus("Applied (no restart).");
-                    }
-                }
-                else
-                {
-                    var resp = MessageBox.Show(this, "Could not notify Explorer of the rollback. Restart Explorer now to apply the setting?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                    if (resp == DialogResult.Yes)
-                    {
-                        Logger.LogInfo("User agreed to restart Explorer after apply (notify failed)");
-                        SetStatus("Restarting Explorer...");
-                        await Task.Run(() => ExplorerRestarter.RestartExplorer());
-                        SetStatus("Applied successfully.");
-                    }
-                    else
-                    {
-                        Logger.LogInfo("User declined to restart Explorer after apply (notify failed)");
-                        SetStatus("Applied (notification failed; restart deferred).");
-                    }
-                }
-                // Refresh checkbox values
-                InitializeCheckboxStates();
-            }
-            else
-            {
-                SetStatus("Failed to apply.");
-                Logger.LogWarning("Failed to apply tweak");
-            }
-
-            btnTweakShowSecondsApply.Enabled = true;
-            btnTweakShowSecondsRollback.Enabled = true;
-        }
-
-        private async void BtnTweakShowSecondsRollback_Click(object? sender, EventArgs e)
-        {
-            SetStatus("Rolling back show seconds tweak...");
-            btnTweakShowSecondsApply.Enabled = false;
-            btnTweakShowSecondsRollback.Enabled = false;
-
-            // Use the registry backup id from the tweak implementation so rollback stays in sync
-            var tweak = new ShowSecondsTweak(false);
-            Logger.LogInfo($"Rolling back tweak {tweak.Id}");
-            StartProgress();
-            var ok = await Task.Run(() => RegistryBackup.Restore(tweak.Id));
-            StopProgress();
-
-            if (ok)
-            {
-                SetStatus("Rollback applied. Notifying shell. Restart Explorer or sign out to ensure full effect.");
-                Logger.LogInfo("Rollback applied. Notifying shell. Restart Explorer or sign out to ensure full effect.");
-                bool notified = BroadcastSettingChange("TraySettings");
-                Logger.LogInfo($"BroadcastSettingChange returned {notified}");
-                if (notified)
-                {
-                    var resp = MessageBox.Show(this, "Rollback applied. Restart Explorer now to ensure the change is visible?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (resp == DialogResult.Yes)
-                    {
-                        Logger.LogInfo("User agreed to restart Explorer after rollback");
-                        SetStatus("Restarting Explorer...");
-                        await Task.Run(() => ExplorerRestarter.RestartExplorer());
-                        SetStatus("Rollback successful.");
-                    }
-                    else
-                    {
-                        Logger.LogInfo("User declined to restart Explorer after rollback");
-                        SetStatus("Rollback applied (no restart).");
-                    }
-                }
-                else
-                {
-                    var resp = MessageBox.Show(this, "Could not notify Explorer of the rollback. Restart Explorer now to apply the setting?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                    if (resp == DialogResult.Yes)
-                    {
-                        Logger.LogInfo("User agreed to restart Explorer after rollback (notify failed)");
-                        SetStatus("Restarting Explorer...");
-                        await Task.Run(() => ExplorerRestarter.RestartExplorer());
-                        SetStatus("Rollback successful.");
-                    }
-                    else
-                    {
-                        Logger.LogInfo("User declined to restart Explorer after rollback (notify failed)");
-                        SetStatus("Rollback applied (notification failed; restart deferred).");
-                    }
-                }
-                // Refresh checkbox values
-                InitializeCheckboxStates();
-            }
-            else
-            {
-                SetStatus("Rollback failed.");
-                Logger.LogWarning("Rollback failed.");
-            }
-
-            btnTweakShowSecondsApply.Enabled = true;
-            btnTweakShowSecondsRollback.Enabled = true;
-        }
-
-        private async void BtnTweakMinAnimateApply_Click(object? sender, EventArgs e)
-        {
-            SetStatus("Applying minimize animations tweak...");
-            StartProgress();
-            btnTweakMinAnimateApply.Enabled = false;
-            btnTweakMinAnimateRollback.Enabled = false;
-
-            var tweak = new MinAnimateTweak(chkTweakMinAnimate.Checked);
-            Logger.LogInfo($"Applying: ({tweak.Id}, enable={chkTweakMinAnimate.Checked})");
+            var tweak = new TweakShowSeconds(tweakCheckbox.Checked);
+            Logger.LogInfo($"Applying: ({tweak.Id}, enable={tweakCheckbox.Checked})");
             var ok = await Task.Run(() => tweak.ApplyAsync());
 
             if (ok)
             {
                 SetStatus("Tweak applied.");
-                Logger.LogInfo($"Applied: ({tweak.Id}, enable={chkTweakMinAnimate.Checked})");
+                Logger.LogInfo($"Applied: ({tweak.Id}, enable={tweakCheckbox.Checked})");
 
                 var resp = MessageBox.Show(this, "Change applied. Restart Explorer now to ensure the change is visible?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (resp == DialogResult.Yes)
@@ -375,26 +269,30 @@ namespace WinTunePro
             else
             {
                 SetStatus("Failed to apply tweak.");
-                Logger.LogWarning($"Apply failed: ({tweak.Id}, enable={chkTweakMinAnimate.Checked})");
+                Logger.LogWarning($"Apply failed: ({tweak.Id}, enable={tweakCheckbox.Checked})");
             }
             StopProgress();
         }
 
-        private async void BtnTweakMinAnimateRollback_Click(object? sender, EventArgs e)
+        private async void BtnTweakShowSecondsRollback_Click(object? sender, EventArgs e)
         {
-            SetStatus("Rolling back minimize animations tweak...");
+            SetStatus("Rolling back show seconds tweak...");
             StartProgress();
-            btnTweakMinAnimateApply.Enabled = false;
-            btnTweakMinAnimateRollback.Enabled = false;
+            CheckBox tweakCheckbox = chkTweakShowSeconds;
+            Button tweakButtonApply = btnTweakShowSecondsApply;
+            Button tweakButtonRollback = btnTweakShowSecondsRollback;
 
-            var tweak = new MinAnimateTweak(false);
-            Logger.LogInfo($"Rolling back: ({tweak.Id}, enable={chkTweakMinAnimate.Checked})");
+            tweakButtonApply.Enabled = false;
+            tweakButtonRollback.Enabled = false;
+
+            var tweak = new TweakShowSeconds(false);
+            Logger.LogInfo($"Rolling back: ({tweak.Id}, enable={tweakCheckbox.Checked})");
             var ok = await Task.Run(() => tweak.RollbackAsync());
 
             if (ok)
             {
                 SetStatus("Rollback applied.");
-                Logger.LogInfo($"Rollback applied: ({tweak.Id}, enable={chkTweakMinAnimate.Checked})");
+                Logger.LogInfo($"Rollback applied: ({tweak.Id}, enable={tweakCheckbox.Checked})");
 
                 var resp = MessageBox.Show(this, "Rollback applied. Restart Explorer now to ensure the change is visible?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (resp == DialogResult.Yes)
@@ -415,27 +313,186 @@ namespace WinTunePro
             else
             {
                 SetStatus("Failed to rollback tweak.");
-                Logger.LogWarning($"Rollback failed: ({tweak.Id}, enable={chkTweakMinAnimate.Checked})");
+                Logger.LogWarning($"Rollback failed: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+            }
+            StopProgress();
+       }
+
+        private async void BtnTweakMinAnimateApply_Click(object? sender, EventArgs e)
+        {
+            SetStatus("Applying minimize animations tweak...");
+            StartProgress();
+            CheckBox tweakCheckbox = chkTweakMinAnimate;
+            Button tweakButtonApply = btnTweakMinAnimateApply;
+            Button tweakButtonRollback = btnTweakMinAnimateRollback;
+
+            tweakButtonApply.Enabled = false;
+            tweakButtonRollback.Enabled = false;
+
+            var tweak = new TweakMinAnimate(tweakCheckbox.Checked);
+            Logger.LogInfo($"Applying: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+            var ok = await Task.Run(() => tweak.ApplyAsync());
+
+            if (ok)
+            {
+                SetStatus("Tweak applied.");
+                Logger.LogInfo($"Applied: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+
+                var resp = MessageBox.Show(this, "Change applied. Restart Explorer now to ensure the change is visible?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (resp == DialogResult.Yes)
+                {
+                    Logger.LogInfo("User agreed to restart Explorer");
+                    SetStatus("Restarting Explorer...");
+                    await Task.Run(() => ExplorerRestarter.RestartExplorer());
+                    SetStatus("Restarted Explorer.");
+                }
+                else
+                {
+                    Logger.LogInfo("User declined to restart Explorer after apply");
+                    SetStatus("Applied (no restart).");
+                }
+                // Refresh checkbox values
+                InitializeCheckboxStates();
+            }
+            else
+            {
+                SetStatus("Failed to apply tweak.");
+                Logger.LogWarning($"Apply failed: ({tweak.Id}, enable={tweakCheckbox.Checked})");
             }
             StopProgress();
         }
 
-        private void toolStripProgressBar1_Click(object sender, EventArgs e)
+        private async void BtnTweakMinAnimateRollback_Click(object? sender, EventArgs e)
         {
+            SetStatus("Rolling back minimize animations tweak...");
+            StartProgress();
+            CheckBox tweakCheckbox = chkTweakMinAnimate;
+            Button tweakButtonApply = btnTweakMinAnimateApply;
+            Button tweakButtonRollback = btnTweakMinAnimateRollback;
 
+            tweakButtonApply.Enabled = false;
+            tweakButtonRollback.Enabled = false;
+
+            var tweak = new TweakMinAnimate(false);
+            Logger.LogInfo($"Rolling back: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+            var ok = await Task.Run(() => tweak.RollbackAsync());
+
+            if (ok)
+            {
+                SetStatus("Rollback applied.");
+                Logger.LogInfo($"Rollback applied: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+
+                var resp = MessageBox.Show(this, "Rollback applied. Restart Explorer now to ensure the change is visible?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (resp == DialogResult.Yes)
+                {
+                    Logger.LogInfo("User agreed to restart Explorer");
+                    SetStatus("Restarting Explorer...");
+                    await Task.Run(() => ExplorerRestarter.RestartExplorer());
+                    SetStatus("Restarted Explorer.");
+                }
+                else
+                {
+                    Logger.LogInfo("User declined to restart Explorer after rollback");
+                    SetStatus("Rollback applied (no restart).");
+                }
+                // Refresh checkbox values
+                InitializeCheckboxStates();
+            }
+            else
+            {
+                SetStatus("Failed to rollback tweak.");
+                Logger.LogWarning($"Rollback failed: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+            }
+            StopProgress();
         }
 
-        private void chkTweakShowSeconds_CheckedChanged(object sender, EventArgs e)
+        private async void BtnTweakTaskbarAnimateApply_Click(object sender, EventArgs e)
         {
-            bool originalState = chkTweakShowSeconds.Tag is bool b && b;
-            btnTweakShowSecondsApply.Enabled = chkTweakShowSeconds.Checked != originalState;
-        }
-        private void chkTweakMinAnimate_CheckedChanged(object sender, EventArgs e)
-        {
-            bool originalState = chkTweakMinAnimate.Tag is bool b && b;
-            btnTweakMinAnimateApply.Enabled = chkTweakMinAnimate.Checked != originalState;
+            SetStatus("Applying taskbar animations tweak...");
+            StartProgress();
+            CheckBox tweakCheckbox = chkTweakTaskbarAnimate;
+            Button tweakButtonApply = btnTweakTaskbarAnimateApply;
+            Button tweakButtonRollback = btnTweakTaskbarAnimateRollback;
+
+            tweakButtonApply.Enabled = false;
+            tweakButtonRollback.Enabled = false;
+
+            var tweak = new TweakTaskbarAnimations(tweakCheckbox.Checked);
+            Logger.LogInfo($"Applying: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+            var ok = await Task.Run(() => tweak.ApplyAsync());
+
+            if (ok)
+            {
+                SetStatus("Tweak applied.");
+                Logger.LogInfo($"Applied: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+
+                var resp = MessageBox.Show(this, "Change applied. Restart Explorer now to ensure the change is visible?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (resp == DialogResult.Yes)
+                {
+                    Logger.LogInfo("User agreed to restart Explorer");
+                    SetStatus("Restarting Explorer...");
+                    await Task.Run(() => ExplorerRestarter.RestartExplorer());
+                    SetStatus("Restarted Explorer.");
+                }
+                else
+                {
+                    Logger.LogInfo("User declined to restart Explorer after apply");
+                    SetStatus("Applied (no restart).");
+                }
+                // Refresh checkbox values
+                InitializeCheckboxStates();
+            }
+            else
+            {
+                SetStatus("Failed to apply tweak.");
+                Logger.LogWarning($"Apply failed: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+            }
+            StopProgress();
         }
 
+        private async void BtnTweakTaskbarAnimateRollback_Click(object sender, EventArgs e)
+        {
+            SetStatus("Rolling back taskbar animations tweak...");
+            StartProgress();
+            CheckBox tweakCheckbox = chkTweakTaskbarAnimate;
+            Button tweakButtonApply = btnTweakTaskbarAnimateApply;
+            Button tweakButtonRollback = btnTweakTaskbarAnimateRollback;
+            
+            tweakButtonApply.Enabled = false;
+            tweakButtonRollback.Enabled = false;
+
+            var tweak = new TweakTaskbarAnimations(false);
+            Logger.LogInfo($"Rolling back: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+            var ok = await Task.Run(() => tweak.RollbackAsync());
+
+            if (ok)
+            {
+                SetStatus("Rollback applied.");
+                Logger.LogInfo($"Rollback applied: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+
+                var resp = MessageBox.Show(this, "Rollback applied. Restart Explorer now to ensure the change is visible?", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (resp == DialogResult.Yes)
+                {
+                    Logger.LogInfo("User agreed to restart Explorer");
+                    SetStatus("Restarting Explorer...");
+                    await Task.Run(() => ExplorerRestarter.RestartExplorer());
+                    SetStatus("Restarted Explorer.");
+                }
+                else
+                {
+                    Logger.LogInfo("User declined to restart Explorer after rollback");
+                    SetStatus("Rollback applied (no restart).");
+                }
+                // Refresh checkbox values
+                InitializeCheckboxStates();
+            }
+            else
+            {
+                SetStatus("Failed to rollback tweak.");
+                Logger.LogWarning($"Rollback failed: ({tweak.Id}, enable={tweakCheckbox.Checked})");
+            }
+            StopProgress();
+        }
     }
 }
 

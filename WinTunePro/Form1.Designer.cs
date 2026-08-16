@@ -8,10 +8,13 @@
         private System.ComponentModel.IContainer components = null;
         private System.Windows.Forms.Button btnTweakShowSecondsApply;
         private System.Windows.Forms.Button btnTweakShowSecondsRollback;
-        private System.Windows.Forms.CheckBox chkTweakShowSeconds;
-        private System.Windows.Forms.CheckBox chkTweakMinAnimate;
         private System.Windows.Forms.Button btnTweakMinAnimateApply;
         private System.Windows.Forms.Button btnTweakMinAnimateRollback;
+        private System.Windows.Forms.Button btnTweakTaskbarAnimateApply;
+        private System.Windows.Forms.Button btnTweakTaskbarAnimateRollback;
+        private System.Windows.Forms.CheckBox chkTweakShowSeconds;
+        private System.Windows.Forms.CheckBox chkTweakMinAnimate;
+        private System.Windows.Forms.CheckBox chkTweakTaskbarAnimate;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripProgressBar toolStripProgressBar1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
@@ -41,8 +44,11 @@
             btnTweakShowSecondsRollback = new Button();
             btnTweakMinAnimateApply = new Button();
             btnTweakMinAnimateRollback = new Button();
+            btnTweakTaskbarAnimateApply = new Button();
+            btnTweakTaskbarAnimateRollback = new Button();
             chkTweakShowSeconds = new CheckBox();
             chkTweakMinAnimate = new CheckBox();
+            chkTweakTaskbarAnimate = new CheckBox();
             statusStrip1 = new StatusStrip();
             toolStripProgressBar1 = new ToolStripProgressBar();
             toolStripStatusLabel1 = new ToolStripStatusLabel();
@@ -89,6 +95,26 @@
             btnTweakMinAnimateRollback.UseVisualStyleBackColor = true;
             btnTweakMinAnimateRollback.Click += BtnTweakMinAnimateRollback_Click;
             // 
+            // btnTweakTaskbarAnimateApply
+            // 
+            btnTweakTaskbarAnimateApply.Location = new Point(1219, 287);
+            btnTweakTaskbarAnimateApply.Name = "btnTweakTaskbarAnimateApply";
+            btnTweakTaskbarAnimateApply.Size = new Size(120, 40);
+            btnTweakTaskbarAnimateApply.TabIndex = 6;
+            btnTweakTaskbarAnimateApply.Text = "Apply";
+            btnTweakTaskbarAnimateApply.UseVisualStyleBackColor = true;
+            btnTweakTaskbarAnimateApply.Click += BtnTweakTaskbarAnimateApply_Click;
+            // 
+            // btnTweakTaskbarAnimateRollback
+            // 
+            btnTweakTaskbarAnimateRollback.Location = new Point(1345, 287);
+            btnTweakTaskbarAnimateRollback.Name = "btnTweakTaskbarAnimateRollback";
+            btnTweakTaskbarAnimateRollback.Size = new Size(120, 40);
+            btnTweakTaskbarAnimateRollback.TabIndex = 8;
+            btnTweakTaskbarAnimateRollback.Text = "Rollback";
+            btnTweakTaskbarAnimateRollback.UseVisualStyleBackColor = true;
+            btnTweakTaskbarAnimateRollback.Click += BtnTweakTaskbarAnimateRollback_Click;
+            // 
             // chkTweakShowSeconds
             // 
             chkTweakShowSeconds.AutoSize = true;
@@ -98,7 +124,7 @@
             chkTweakShowSeconds.TabIndex = 4;
             chkTweakShowSeconds.Text = "Show seconds in taskbar clock (uses more power)";
             chkTweakShowSeconds.UseVisualStyleBackColor = true;
-            chkTweakShowSeconds.CheckedChanged += chkTweakShowSeconds_CheckedChanged;
+            chkTweakShowSeconds.CheckedChanged += ChkTweakShowSeconds_CheckedChanged;
             // 
             // chkTweakMinAnimate
             // 
@@ -109,7 +135,18 @@
             chkTweakMinAnimate.TabIndex = 4;
             chkTweakMinAnimate.Text = "Animate windows when minimizing && maximizing";
             chkTweakMinAnimate.UseVisualStyleBackColor = true;
-            chkTweakMinAnimate.CheckedChanged += chkTweakMinAnimate_CheckedChanged;
+            chkTweakMinAnimate.CheckedChanged += ChkTweakMinAnimate_CheckedChanged;
+            // 
+            // chkTweakTaskbarAnimate
+            // 
+            chkTweakTaskbarAnimate.AutoSize = true;
+            chkTweakTaskbarAnimate.Location = new Point(546, 290);
+            chkTweakTaskbarAnimate.Name = "chkTweakTaskbarAnimate";
+            chkTweakTaskbarAnimate.Size = new Size(344, 36);
+            chkTweakTaskbarAnimate.TabIndex = 7;
+            chkTweakTaskbarAnimate.Text = "Animate taskbar thumbnails";
+            chkTweakTaskbarAnimate.UseVisualStyleBackColor = true;
+            chkTweakTaskbarAnimate.CheckedChanged += ChkTweakTaskbarAnimate_CheckedChanged;
             // 
             // statusStrip1
             // 
@@ -137,13 +174,17 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1535, 911);
             Controls.Add(chkTweakShowSeconds);
-            Controls.Add(chkTweakMinAnimate);
             Controls.Add(btnTweakShowSecondsApply);
             Controls.Add(btnTweakShowSecondsRollback);
+            Controls.Add(chkTweakMinAnimate);
             Controls.Add(btnTweakMinAnimateApply);
             Controls.Add(btnTweakMinAnimateRollback);
+            Controls.Add(chkTweakTaskbarAnimate);
+            Controls.Add(btnTweakTaskbarAnimateApply);
+            Controls.Add(btnTweakTaskbarAnimateRollback);
             Controls.Add(statusStrip1);
             FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
             Name = "MainForm";
             Text = "WinTunePro";
             statusStrip1.ResumeLayout(false);

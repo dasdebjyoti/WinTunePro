@@ -6,7 +6,7 @@ using WinTunePro.Utils;
 
 namespace WinTunePro.Tweaks
 {
-    public class MinAnimateTweak : RegistryTweak
+    public class TweakMinAnimate : RegistryTweak
     {
         public override string Id => "winanimation";
         public override string Name => "Window animations";
@@ -20,37 +20,37 @@ namespace WinTunePro.Tweaks
         //                         The value in the second location HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics exists, but Windows 11 does not use it anymore.
         //                         It’s a legacy Windows 95/98/XP location. Microsoft kept it for backward compatibility.
         // TODO: Check if this is a version-specific issue and adjust the path accordingly. For now, we'll use the path that works on my system.
-        public const string KeyMinAnimatePath = "Control Panel\\Desktop\\WindowMetrics";
-        public const string KeyMinAnimateName = "MinAnimate"; // REG_SZ "0"/"1"
-
-        private const string KeyTaskbarPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
-        private const string KeyTaskbarName = "TaskbarAnimations"; // REG_DWORD 0/1
+        private const string KeyPathMinAnimate = "Control Panel\\Desktop\\WindowMetrics";
+        private const string KeyNameMinAnimate = "MinAnimate"; // REG_SZ "0"/"1"
+        private const RegistryValueKind KeyKindMinAnimate = RegistryValueKind.String;
 
         private readonly bool _enable;
 
-        public MinAnimateTweak(bool enable)
+        public TweakMinAnimate(bool enable)
         {
             _enable = enable;
         }
 
         /// <summary>
-        /// Read the current MinAnimate value from registry and return whether animations are enabled.
+        /// Read the current value from registry and return whether the tweak is enabled.
         /// Returns null if the value cannot be determined.
         /// </summary>
         public bool? GetCurrentEnabled()
         {
             try
             {
-                using var k = Registry.CurrentUser.OpenSubKey(KeyMinAnimatePath, writable: false);
+                using var k = Registry.CurrentUser.OpenSubKey(KeyPathMinAnimate, writable: false);
                 if (k == null) return null;
-                var val = k.GetValue(KeyMinAnimateName);
+                var val = k.GetValue(KeyNameMinAnimate);
+
+                // Registry value is a STRING (REG_SZ), so check string types first
                 if (val is string s)
                 {
                     if (s == "1") return true;
                     if (s == "0") return false;
                 }
 
-                // If stored as numeric in some systems
+                // Fallback: handle numeric representation (in case it was set as a number)
                 if (val is int iv) return iv != 0;
                 if (val is long lv) return lv != 0L;
 
@@ -64,7 +64,7 @@ namespace WinTunePro.Tweaks
         }
 
         /// <summary>
-        /// Check whether a backup file for the current MinAnimate value exists.
+        /// Check whether a backup file for the current value exists.
         /// Returns null if there was a failure.
         /// </summary>
         public bool? IsBackupFileAvailable()
@@ -76,7 +76,7 @@ namespace WinTunePro.Tweaks
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex, "Failed to read MinAnimate current state");
+                Logger.LogException(ex, "Failed to read backup file");
                 return null;
             }
         }
@@ -87,19 +87,13 @@ namespace WinTunePro.Tweaks
             {
                 Logger.LogInfo($"Applying: (tweak {Id}, enable={_enable})");
 
-                // Backup both values
-                RegistryBackup.Save(Id, Registry.CurrentUser, KeyMinAnimatePath, KeyMinAnimateName);
+                // Backup the current value
+                RegistryBackup.Save(Id, Registry.CurrentUser, KeyPathMinAnimate, KeyNameMinAnimate);
 
-                // Set MinAnimate (string)
-                using (var k = Registry.CurrentUser.CreateSubKey(KeyMinAnimatePath))
+                // Set Registry value (string)
+                using (var k = Registry.CurrentUser.CreateSubKey(KeyPathMinAnimate))
                 {
-                    k.SetValue(KeyMinAnimateName, _enable ? "1" : "0", RegistryValueKind.String);
-                }
-
-                // Set TaskbarAnimations (DWORD)
-                using (var k = Registry.CurrentUser.CreateSubKey(KeyTaskbarPath))
-                {
-//                    k.SetValue(KeyTaskbarName, _enable ? 1 : 0, RegistryValueKind.DWord);
+                    k.SetValue(KeyNameMinAnimate, _enable ? "1" : "0", KeyKindMinAnimate);
                 }
 
                 Logger.LogInfo($"Applied: (tweak {Id}, enable={_enable})");
@@ -144,10 +138,10 @@ namespace WinTunePro.Tweaks
                     // Read current MinAnimate value and apply immediately
                     try
                     {
-                        using var k = Registry.CurrentUser.OpenSubKey(KeyMinAnimatePath, writable: false);
+                        using var k = Registry.CurrentUser.OpenSubKey(KeyPathMinAnimate, writable: false);
                         if (k != null)
                         {
-                            var val = k.GetValue(KeyMinAnimateName);
+                            var val = k.GetValue(KeyNameMinAnimate);
                             if (val is string s)
                             {
                                 var enable = s == "1";
